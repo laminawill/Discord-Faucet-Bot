@@ -8,13 +8,18 @@
 		"sourceMap": false,
 		"esModuleInterop": true,
 		"experimentalDecorators": true,
+		"strictPropertyInitialization": false,
+		"isolatedModules": false,
+		"strict": false,
+		"noImplicitAny": false,
 		"emitDecoratorMetadata": true,
 		"allowSyntheticDefaultImports": true,
 		"skipLibCheck": true,
 		"skipDefaultLibCheck": true,
 		"resolveJsonModule": true,
 		"importHelpers": true,
-		"allowJs": true
+		"allowJs": true,
+		"strictNullChecks": true
 	},
 	"include": ["src", "environment.d.ts"],
 	"exclude": ["node_modules", "**/*.spec.ts"]

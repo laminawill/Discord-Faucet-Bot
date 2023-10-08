@@ -13,7 +13,10 @@ export class ExtendedClient extends Client {
 		name: string,
 		url: string
 	): Presence {
-		return this.user?.setPresence({
+		if (!this.user) {
+			throw new Error('User is undefined');
+		}
+		return this.user.setPresence({
 			activities: [
 				{
 					type,

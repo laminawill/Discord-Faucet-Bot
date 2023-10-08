@@ -7,7 +7,7 @@ import path from "node:path";
 const assignCommands = require("./utils/assignCommands");
 
 // Get all commands from the `/commands` folder
-const commands = [];
+const commands = [] as any[];
 const commandsPath = path.join(__dirname, "commands");
 const commandFiles = fs.readdirSync(commandsPath);
 

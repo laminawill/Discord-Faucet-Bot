@@ -1,63 +1,69 @@
 //* Returns the balance of the Faucet Account in native Currency or the token passed
 
-import { ChatInputCommandInteraction, TextChannel } from "discord.js";
-import { ethers } from "ethers";
+import {type ChatInputCommandInteraction, type TextChannel} from "discord.js";
 
-import { channels, networks, tokens } from "../config/config.json";
+import {channels,primary} from "../config/config.json";
+import getBalance from "../utils/getBalance";
+import getContract from "../utils/getContract";
+import getProvider from "../utils/getProvider";
 
-const getBalance = require("../utils/getBalance");
-const getProvider = require("../utils/getProvider");
+export type UserFacingSchedule = {
+	total: string;
+	address: string;
+	unlocked: string;
+	locked: string;
+	withdrawn: string;
+	lockupStart: string;
+	lockupEnd: string;
+};
 
-module.exports = async (interaction: ChatInputCommandInteraction): Promise<void> => {
-	// Initial Responce to client
-	await interaction.reply({ content: "👩‍💻 Calculating....", ephemeral: true, fetchReply: true });
+export default async (
+	interaction: ChatInputCommandInteraction,
+): Promise<void> => {
+	// Initial Response to client
+	await interaction.reply({content: "👩‍💻 Calculating....", ephemeral: true, fetchReply: true});
 
 	try {
-		let balance: string; // Holds the final balance (string)
+		// Get the Discord User ID and network name from the command
+		const discordId = interaction.user.id;
+		const networkOption = interaction.options.get("network");
+		let networkName = networkOption?.value as string || primary;
+		if (!networkName) {
+			networkName = primary;
+		}
+		// Get the Provider based on the primary network
+		const provider = await getProvider(networkName);
+		const contract = await getContract(networkName);
 
-		// Get the Network and token from user input
-		const networkName =
-			interaction.options.getString("network") ?? networks[0].name.toLowerCase();
-		const tokenName = interaction.options.getString("token");
-		let suffix: string;
-
-		// Get the Provider based on the network
-		const provider = (await getProvider(networkName)) as ethers.providers.JsonRpcProvider;
-
-		if (!tokenName) {
-			//* Token not passed or native Currency (No ERC20 tokens)
-			balance = await getBalance(provider);
-
-			// Get Suffix
-			for (let i = 0; i < networks.length; i++) {
-				if (networkName == networks[i].name) {
-					suffix = networks[i].nativeCurrency.toUpperCase();
-					break;
-				}
-			}
-		} else {
-			//* Non native token (ERC 20 token)
-			balance = await getBalance(provider, tokenName, networkName);
-
-			// Get Suffix
-			for (let i = 0; i < tokens.length; i++) {
-				if (tokenName == tokens[i].name) {
-					suffix = tokens[i].name.toUpperCase();
-					break;
-				}
+		// Get all awarded airdrops
+		const airdrops = await getBalance(provider, contract, discordId);
+		if (airdrops.length === 0) {
+			await interaction.editReply("❌ No airdrop found for your Discord handle");
+			return;
+		}
+		let response = "";
+		for (let i = 0; i < airdrops.length; i++) {
+			response += "Airdrop " + i;
+			response += "Total tokens: " + airdrops[i].total;
+			response += "Address: " + airdrops[i].address;
+			response += "Withdrawable tokens: " + airdrops[i].unlocked;
+			response += "Withdrawn tokens: " + airdrops[i].withdrawn;
+			response += "Vesting tokens: " + airdrops[i].locked;
+			response += "Vest start: " + airdrops[i].lockupStart;
+			response += "Vest end: " + airdrops[i].lockupEnd;
+			if (i < airdrops.length) {
+				response += "\n";
 			}
 		}
 
-		// Rounding off the value
-		const balancefinal = balance.toString().slice(0, balance.toString().indexOf(".") + 3);
-
 		// Printing the value out
-		await interaction.editReply(`[${networkName.toUpperCase()}] [${balancefinal}] [${suffix}]`);
+		await interaction.editReply(response);
 	} catch (error) {
-		console.error(`Error [RESPONCE - BALANCE] : ${error}`);
-		const errorchannel = interaction.client.channels.cache.get(channels.error) as TextChannel;
-		errorchannel.send(
-			`[ERROR]\n${new Date(Date.now()).toUTCString()}\nGetting Balance\n${error}`
+		console.error(`Error [RESPONSE - BALANCE] : ${error}`);
+		const errorchannel = interaction.client.channels.cache
+			.get(channels.error) as TextChannel;
+		await errorchannel.send(
+			`[ERROR]\n${new Date(Date.now()).toUTCString()}\nGetting Balance\n${error}`,
 		);
 		await interaction.editReply("🙇‍♂️ Error, please try again later");
 	}

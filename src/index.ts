@@ -1,6 +1,5 @@
 // Starting Point of the project : run `node .`
 import { Collection } from "discord.js";
-import * as dotenv from "dotenv";
 import Keyv from "keyv";
 import fs from "node:fs";
 import path from "node:path";
@@ -8,13 +7,20 @@ import path from "node:path";
 import client from "./client"; // Get Client
 import { InitializeDb } from "./database";
 
-dotenv.config();
+//dotenv.config();
+require("dotenv").config();
+console.log(process.env.DB_PASSWORD);
 
 // KeyV Creation and Handling
 const keyv = new Keyv();
 keyv.on("error", (err?: Error) => {
-	console.error("Keyv connection error:", err.message);
-	throw new Error("Error KEYV: " + err.message);
+    if (err) {
+        console.error("Keyv connection error:", err.message);
+        throw new Error("Error KEYV: " + err.message);
+    } else {
+        console.error("Keyv connection error: Unknown error");
+        throw new Error("Error KEYV: Unknown error");
+    }
 });
 
 // Run the Events

@@ -1,38 +1,37 @@
 //* Returns the Provider or throws an Error if not found
+import { ethers } from 'ethers';
+import { networks } from '../config/config.json';
 
-import { CeloProvider } from "@celo-tools/celo-ethers-wrapper";
-import { ethers } from "ethers";
+// Define a cache object to store the provider instances
+const providerCache = new Map<string, ethers.providers.JsonRpcProvider>();
 
-import { networks } from "../config/config.json";
+const getProvider = async (networkName: string): Promise<ethers.providers.JsonRpcProvider> => {
+	// Check if the provider is already in the cache
+	if (providerCache.has(networkName)) {
+		return providerCache.get(networkName)!;
+	}
 
-// TODO : Use `DefaultProvider` so that the Bot uses Multiple RPC Nodes when possible
-
-module.exports = async (networkName: string): Promise<ethers.providers.JsonRpcProvider> => {
-	let networkRPC: string;
+	let networkRpc: string | undefined;
 
 	// Loop Over Every Network until the correct network is found
-	for (let i = 0; i < networks.length; i++) {
-		console.log('Config Networks: %s', networks[i].name);
-		console.log('Command Network: %s', networkName);
-		if (networks[i].name == networkName) {
-			//networkRPC = networks[i].ALCHEMY_URL ?? networks[i].RPC_URL;
-			networkRPC = networks[i].RPC_URL;
-			console.log('RPC URL: %s', networks[i].RPC_URL);
+	for (const network of networks) {
+		if (network.name === networkName) {
+			networkRpc = network.RPC_URL;
 			break;
 		}
 	}
 
-	if (!networkRPC) {
-		throw new Error("Network RPC Not Setup!");
+	if (!networkRpc) {
+		throw new Error('Network RPC Not Setup!');
 	}
 
-	if (networkName == "celo") {
-		const provider = new CeloProvider(networkRPC);
-		await provider.ready;
-		return provider;
-	}
-	const provider = new ethers.providers.JsonRpcProvider(networkRPC);
-	console.log('Utils/getProvider requesting Provider: %s', networkRPC)
+	// If not in cache, create a new provider instance and store it in the cache
+	const provider = new ethers.providers.JsonRpcProvider(networkRpc);
 	await provider.ready;
+
+	// Store the provider in the cache
+	providerCache.set(networkName, provider);
 	return provider;
 };
+
+export default getProvider;
